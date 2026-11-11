@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Windom — Vent AROME Océan Indien</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-velocity@2.1.4/dist/leaflet-velocity.min.css">
+  <link rel="stylesheet" href="./index.css">
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- Compact overlay: header + date/hour selector (collapsible on mobile) -->
+  <section id="hud" class="panel">
+    <div class="row head">
+      <span id="dot" class="dot loading" title=""></span>
+      <strong>Windom</strong>
+      <span class="model">AROME Indien 2.5km</span>
+      <button id="collapse" class="icon" aria-label="Toggle">▾</button>
+    </div>
+    <div class="body">
+      <div class="meta"><span data-i18n="updated">Mis à jour</span> <b id="last">–</b> · <span data-i18n="next">Prochaine</span> <b id="next">–</b></div>
+      <div id="dates" class="seg"></div>
+      <div id="hours" class="cells"></div>
+    </div>
+  </section>
+
+  <!-- Floating controls (bottom on mobile) -->
+  <div id="controls" class="panel">
+    <button id="lang">EN</button>
+    <button id="kind" data-i18n="wind">Vent</button>
+    <button id="anim" class="on" data-i18n="anim">Animation</button>
+  </div>
+
+  <div id="legend" class="panel"></div>
+  <div id="cursor" class="panel">–</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-velocity@2.1.4/dist/leaflet-velocity.min.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
