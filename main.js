@@ -89,16 +89,31 @@ async function load() {
     if (tok !== S.token) return; // a newer request superseded this one
     
     S.f = { u: a.band, v: b.band, g: g?.band, w: a.w, h: a.h, bbox: a.bbox };
-    
+        
     if (S.f.bbox && !map.options.maxBounds) {
       const [W, Sx, E, N] = S.f.bbox;
-      const pad = 0.5; // Marge de 0.5 degré
+      const pad = 0.5; // Marge autour de la zone
+      
       const bounds = [
         [Sx - pad, W - pad], // Sud-Ouest
         [N + pad, E + pad]   // Nord-Est
       ];
+
+      // 1. Applique les limites
       map.setMaxBounds(bounds);
       map.options.maxBoundsViscosity = 1.0;
+
+      // 2. Centre et zoome parfaitement sur la zone
+      map.fitBounds(bounds, { padding: [20, 20] });
+
+      // 3. Empêche de dézoomer au-delà du niveau où toute la zone est visible
+      // On attend un petit peu que la carte se centre avant de figer le minZoom
+      setTimeout(() => {
+        const currentZoom = map.getZoom();
+        // currentZoom - 1 permet de dézoomer un tout petit peu plus que le cadrage parfait,
+        // mais pas assez pour voir tout l'océan Indien ou l'Afrique.
+        map.setMinZoom(currentZoom - 1); 
+      }, 100);
     }
     
     if (a.run && S.meta && a.run !== S.meta.run) { 
