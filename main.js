@@ -11,25 +11,31 @@ const TZ = 4, H = 3600e3;
 
 // ---------- i18n ----------
 const I18N = {
-  fr: { updated: "Mis à jour", next: "Prochaine", wind: "Vent", gust: "Rafales", anim: "Animation",
-        d: ["Hier", "Aujourd'hui", "Demain"], ok: "Données chargées", err: "Erreur de chargement", load: "Chargement…",
-        from: "de", toward: "vent" },
-  en: { updated: "Updated", next: "Next", wind: "Wind", gust: "Gusts", anim: "Animation",
-        d: ["Yesterday", "Today", "Tomorrow"], ok: "Data loaded", err: "Loading error", load: "Loading…",
-        from: "from", toward: "wind" },
+  fr: {
+    updated: "Mis à jour", next: "Prochaine", wind: "Vent", gust: "Rafales", anim: "Animation",
+    d: ["Hier", "Aujourd'hui", "Demain"], ok: "Données chargées", err: "Erreur de chargement", load: "Chargement…",
+    from: "de", toward: "vent"
+  },
+  en: {
+    updated: "Updated", next: "Next", wind: "Wind", gust: "Gusts", anim: "Animation",
+    d: ["Yesterday", "Today", "Tomorrow"], ok: "Data loaded", err: "Loading error", load: "Loading…",
+    from: "from", toward: "wind"
+  },
 };
 let lang = navigator.language?.startsWith("en") ? "en" : "fr";
 const T = (k) => I18N[lang][k];
 
 // ---------- colors (km/h) ----------
 const STOPS = [
-  [0,  [220, 40, 40]],
-  [25, [240, 120, 40]],
-  [45, [250, 200, 60]],
-  [65, [120, 220, 80]],
-  [85, [40, 180, 200]],
-  [105,[40, 100, 220]],
-  [120,[120, 20, 160]]
+  [0, [40, 70, 180]],
+  [8, [40, 150, 220]],
+  [16, [40, 200, 170]],
+  [24, [120, 220, 80]],
+  [32, [240, 220, 60]],
+  [44, [250, 150, 40]],
+  [56, [230, 60, 40]],
+  [72, [180, 30, 120]],
+  [88, [120, 20, 160]],
 ];
 const LUT = Array.from({ length: 121 }, (_, k) => { // one RGB per km/h, linear interpolation between stops
   let i = STOPS.findIndex(([v]) => v >= k); if (i <= 0) i = 1;
@@ -41,15 +47,18 @@ const rgb = (c) => `rgb(${c.join(",")})`;
 // ---------- state ----------
 const $ = (id) => document.getElementById(id);
 const S = { kind: "wind", t: null, day: 0, meta: null, f: null, anim: true, pin: null, token: 0 };
-const fmt = (ms) => { const d = new Date(ms + TZ * H), p = (n) => String(n).padStart(2, "0");
-  return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)} ${p(d.getUTCHours())}h${p(d.getUTCMinutes())}`; };
+const fmt = (ms) => {
+  const d = new Date(ms + TZ * H), p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)} ${p(d.getUTCHours())}h${p(d.getUTCMinutes())}`;
+};
 function setStatus(s) { $("dot").className = "dot " + s; $("dot").title = T({ ok: "ok", error: "err", loading: "load" }[s]); }
 
 // ---------- map ----------
-const map = L.map("map", { center: [-21.1, 55.5], zoom: 7, minZoom: 4, zoomControl: true, preferCanvas: true });
+const map = L.map("map", { center: [-21.1, 55.5], zoom: 7, minZoom: 4,  maxBounds: [[-30, 40], [-10, 70]], maxBoundsViscosity: 0.8,zoomControl: true, preferCanvas: true });
 L.control.zoom({ position: "bottomleft" }).addTo(map);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_56p3_1_02e4e5c60e17be46250aad47", {
-  attribution: "© OpenStreetMap © CARTO | Météo-France AROME (Etalab)", maxZoom: 12 }).addTo(map);
+  attribution: "© OpenStreetMap © CARTO | Météo-France AROME (Etalab)", maxZoom: 12
+}).addTo(map);
 let colorLayer = null, velocity = null;
 
 // Arrow layer: one canvas covering the viewport, grid spacing (px) adapts to zoom.
@@ -138,21 +147,27 @@ function renderVelocity() {
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     const p = (j * k) * f.w + i * k, u = f.u[p], v = f.v[p]; uu.push(Math.abs(u) < 500 ? u : 0); vv.push(Math.abs(v) < 500 ? v : 0);
   }
-  const hdr = (n) => ({ parameterUnit: "m.s-1", parameterCategory: 2, parameterNumber: n, nx, ny, numberPoints: nx * ny,
+  const hdr = (n) => ({
+    parameterUnit: "m.s-1", parameterCategory: 2, parameterNumber: n, nx, ny, numberPoints: nx * ny,
     lo1: W + res / 2, la1: N - res / 2, lo2: W + res / 2 + (nx - 1) * k * res, la2: N - res / 2 - (ny - 1) * k * res,
-    dx: k * res, dy: k * res, refTime: new Date().toISOString() });
-  velocity = L.velocityLayer({ displayValues: false, data: [{ header: hdr(2), data: uu }, { header: hdr(3), data: vv }],
+    dx: k * res, dy: k * res, refTime: new Date().toISOString()
+  });
+  velocity = L.velocityLayer({
+    displayValues: false, data: [{ header: hdr(2), data: uu }, { header: hdr(3), data: vv }],
     maxVelocity: 25, velocityScale: 0.006, lineWidth: 1.4, particleMultiplier: 1 / 400,
-    colorScale: ["#ffffff", "#e0f2fe", "#fef3c7"] }).addTo(map);
+    colorScale: ["#ffffff", "#e0f2fe", "#fef3c7"]
+  }).addTo(map);
 }
 
 // ---------- tooltips / pin ----------
 const tip = L.tooltip({ className: "wtip", direction: "top", offset: [0, -8] });
 const txt = (p) => p ? `<b>${p.kmh.toFixed(0)} km/h</b> · ${Math.round(p.dir)}°` : "–";
 if (matchMedia("(hover:hover)").matches) {
-  map.on("mousemove", (e) => { const p = sample(e.latlng);
+  map.on("mousemove", (e) => {
+    const p = sample(e.latlng);
     tip.setLatLng(e.latlng).setContent(txt(p)); if (!map.hasLayer(tip)) tip.addTo(map);
-    $("cursor").innerHTML = `${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)} — ${txt(p)}`; });
+    $("cursor").innerHTML = `${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)} — ${txt(p)}`;
+  });
   map.on("mouseout", () => map.removeLayer(tip));
 }
 let pinMarker = L.circleMarker([0, 0], { radius: 6, color: "#fff", fillColor: "#38bdf8", fillOpacity: 1 });
@@ -163,17 +178,23 @@ function refreshPin() {
 }
 
 // ---------- time selection (Réunion time) ----------
-const dayStart = (off) => { const d = new Date(Date.now() + TZ * H); // UTC epoch of 00:00 Réunion on day (today+off)
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + off) - TZ * H; };
+const dayStart = (off) => {
+  const d = new Date(Date.now() + TZ * H); // UTC epoch of 00:00 Réunion on day (today+off)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + off) - TZ * H;
+};
 const valid = (t) => S.meta && t >= Date.parse(S.meta.validFrom) && t <= Date.parse(S.meta.validTo);
 
 function renderTime() {
   $("dates").innerHTML = ""; $("hours").innerHTML = "";
-  [-1, 0, 1].forEach((off, i) => { const b = document.createElement("button"); b.textContent = T("d")[i];
-    b.className = off === S.day ? "sel" : ""; b.onclick = () => pickDay(off); $("dates").append(b); });
-  for (let h = 0; h < 24; h += 3) { const t = dayStart(S.day) + h * H, b = document.createElement("button");
+  [-1, 0, 1].forEach((off, i) => {
+    const b = document.createElement("button"); b.textContent = T("d")[i];
+    b.className = off === S.day ? "sel" : ""; b.onclick = () => pickDay(off); $("dates").append(b);
+  });
+  for (let h = 0; h < 24; h += 3) {
+    const t = dayStart(S.day) + h * H, b = document.createElement("button");
     b.textContent = String(h).padStart(2, "0") + "h"; b.disabled = !valid(t); b.className = t === S.t ? "sel" : "";
-    b.onclick = () => { S.t = t; renderTime(); load(); }; $("hours").append(b); }
+    b.onclick = () => { S.t = t; renderTime(); load(); }; $("hours").append(b);
+  }
 }
 function pickDay(off) { // keep the same local hour if possible, else the nearest valid cell of that day
   const hr = S.t != null ? Math.round(((S.t - dayStart(S.day)) / H) / 3) * 3 : 12; S.day = off;
@@ -185,8 +206,7 @@ function header() { $("last").textContent = fmt(Date.parse(S.meta.run)); $("next
 
 // ---------- legend + i18n ----------
 function legend() {
-  $("legend").innerHTML = `<div class="lab"><span>km/h</span></div><div class="bar" style="background:linear-gradient(90deg,${
-    STOPS.map(([v, c]) => `${rgb(c)} ${v / 1.2}%`).join(",")})"></div><div class="lab"><span>0</span><span>30</span><span>60</span><span>90</span><span>120</span></div>`;
+  $("legend").innerHTML = `<div class="lab"><span>km/h</span></div><div class="bar" style="background:linear-gradient(90deg,${STOPS.map(([v, c]) => `${rgb(c)} ${v / 1.2}%`).join(",")})"></div><div class="lab"><span>0</span><span>30</span><span>60</span><span>90</span><span>120</span></div>`;
 }
 function applyLang() {
   document.documentElement.lang = lang; $("lang").textContent = lang === "fr" ? "EN" : "FR";
