@@ -4,9 +4,9 @@
  * the browser decodes U/V rasters, so no GRIB2 / heavy JSON is needed.
  * Internally everything is UTC epoch ms; display uses Réunion time (UTC+4).
  */
-import { fromArrayBuffer } from "https://cdn.jsdelivr.net/npm/geotiff@2.1.3/+esm";
+import { fromArrayBuffer } from 'geotiff';
 
-const WORKER_URL = "https://windom.<your-subdomain>.workers.dev"; // <- replace after `npx wrangler deploy`
+const WORKER_URL = "https://windom.picard-nicolas-run.workers.dev"; // <- replace after `npx wrangler deploy`
 const TZ = 4, H = 3600e3;
 
 // ---------- i18n ----------
@@ -40,7 +40,7 @@ function setStatus(s) { $("dot").className = "dot " + s; $("dot").title = T({ ok
 
 // ---------- map ----------
 const map = L.map("map", { center: [-21.1, 55.5], zoom: 7, minZoom: 4, zoomControl: true, preferCanvas: true });
-L.tileLayer("https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_56p3_1_02e4e5c60e17be46250aad47", {
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_56p3_1_02e4e5c60e17be46250aad47", {
   attribution: "© OpenStreetMap © CARTO | Météo-France AROME (Etalab)", maxZoom: 12 }).addTo(map);
 let colorLayer = null, velocity = null;
 
@@ -81,10 +81,10 @@ async function getTiff(c, t) {
 async function load() {
   const tok = ++S.token; setStatus("loading");
   try {
-    const [cu, cv] = S.kind === "wind" ? ["u", "v"] : ["gu", "gv"];
-    const [a, b] = await Promise.all([getTiff(cu, S.t), getTiff(cv, S.t)]);
+    // Gusts: Météo-France gives gust SPEED only, so direction/arrows/particles keep using the mean wind U/V.
+    const [a, b, g] = await Promise.all((S.kind === "wind" ? ["u", "v"] : ["u", "v", "g"]).map((c) => getTiff(c, S.t)));
     if (tok !== S.token) return; // a newer request superseded this one
-    S.f = { u: a.band, v: b.band, w: a.w, h: a.h, bbox: a.bbox };
+    S.f = { u: a.band, v: b.band, g: g?.band, w: a.w, h: a.h, bbox: a.bbox };
     if (a.run && S.meta && a.run !== S.meta.run) { S.meta.run = a.run; S.meta.nextRun = new Date(Date.parse(a.run) + 6 * H + 55 * 60e3).toISOString(); header(); }
     renderColor(); arrows.draw(); renderVelocity(); refreshPin(); setStatus("ok");
   } catch (e) { console.error(e); if (tok === S.token) setStatus("error"); }
@@ -96,7 +96,8 @@ function sample(ll) {
   const col = Math.floor((ll.lng - W) / (E - W) * f.w), row = Math.floor((N - ll.lat) / (N - Sx) * f.h);
   if (col < 0 || row < 0 || col >= f.w || row >= f.h) return null;
   const u = f.u[row * f.w + col], v = f.v[row * f.w + col]; if (!(Math.abs(u) < 500 && Math.abs(v) < 500)) return null;
-  return { u, v, kmh: Math.hypot(u, v) * 3.6, dir: (Math.atan2(-u, -v) * 180 / Math.PI + 360) % 360 };
+  const sp = f.g ? f.g[row * f.w + col] : Math.hypot(u, v); if (!(sp < 500)) return null;
+  return { u, v, kmh: sp * 3.6, dir: (Math.atan2(-u, -v) * 180 / Math.PI + 360) % 360 };
 }
 
 // Color background: re-projected from lat/lon rows to Web-Mercator rows so it lines up with the tiles.
@@ -110,7 +111,7 @@ function renderColor() {
     for (let i = 0; i < f.w; i++) {
       const k = row * f.w + i, u = f.u[k], v = f.v[k], o = (j * f.w + i) * 4;
       if (!(Math.abs(u) < 500)) continue; // nodata stays transparent
-      const c = LUT[Math.min(120, Math.round(Math.hypot(u, v) * 3.6))];
+      const c = LUT[Math.min(120, Math.round((f.g ? f.g[k] : Math.hypot(u, v)) * 3.6))];
       d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 170;
     }
   }
