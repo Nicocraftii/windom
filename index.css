@@ -27,7 +27,6 @@ button:disabled{opacity:.35;cursor:default;pointer-events:none}
 #cursor{left:10px;bottom:14px;padding:8px 12px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--mut)}
 .leaflet-tooltip.wtip{background:var(--bg);color:var(--fg);border:0;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
 .leaflet-control-attribution{font-size:10px}
-/* à supprimer ou ajuster */
 .leaflet-control-zoom { margin-bottom: 60px !important }
 
 

@@ -6,10 +6,9 @@
  */
 import { fromArrayBuffer } from 'https://cdn.jsdelivr.net/npm/geotiff@2.1.3/+esm';
 
-const WORKER_URL = "https://windom.picard-nicolas-run.workers.dev"; // <- replace after `npx wrangler deploy`
+const WORKER_URL = "https://windom.picard-nicolas-run.workers.dev";
 const TZ = 4, H = 3600e3;
 
-// ---------- i18n ----------
 const I18N = {
   fr: {
     updated: "Mis à jour", next: "Prochaine", wind: "Vent", gust: "Rafales", anim: "Animation",
@@ -25,26 +24,24 @@ const I18N = {
 let lang = navigator.language?.startsWith("en") ? "en" : "fr";
 const T = (k) => I18N[lang][k];
 
-// ---------- colors (km/h) ----------
 const STOPS = [
-  [0,   [40, 70, 180]],   // bleu foncé (calme)
-  [10,  [40, 150, 220]],  // bleu clair
-  [20,  [40, 200, 170]],  // turquoise
-  [30,  [120, 220, 80]],  // vert
-  [40,  [240, 220, 60]],  // jaune
-  [55,  [250, 150, 40]],  // orange
-  [70,  [230, 60, 40]],   // rouge
-  [90,  [180, 30, 120]],  // magenta
-  [110, [120, 20, 160]],  // violet
+  [0,   [40, 70, 180]],
+  [10,  [40, 150, 220]],
+  [20,  [40, 200, 170]],
+  [30,  [120, 220, 80]],
+  [40,  [240, 220, 60]],
+  [55,  [250, 150, 40]],
+  [70,  [230, 60, 40]],
+  [90,  [180, 30, 120]],
+  [110, [120, 20, 160]],
 ];
-const LUT = Array.from({ length: 121 }, (_, k) => { // one RGB per km/h, linear interpolation between stops
+const LUT = Array.from({ length: 121 }, (_, k) => {
   let i = STOPS.findIndex(([v]) => v >= k); if (i <= 0) i = 1;
   const [v0, c0] = STOPS[i - 1], [v1, c1] = STOPS[i], f = Math.min(1, (k - v0) / (v1 - v0));
   return c0.map((c, j) => Math.round(c + (c1[j] - c) * f));
 });
 const rgb = (c) => `rgb(${c.join(",")})`;
 
-// ---------- state ----------
 const $ = (id) => document.getElementById(id);
 const S = { kind: "wind", t: null, day: 0, meta: null, f: null, anim: true, pin: null, token: 0 };
 const fmt = (ms) => {
@@ -53,7 +50,6 @@ const fmt = (ms) => {
 };
 function setStatus(s) { $("dot").className = "dot " + s; $("dot").title = T({ ok: "ok", error: "err", loading: "load" }[s]); }
 
-// ---------- map ----------
 const map = L.map("map", { 
   center: [-21.1, 55.5], 
   zoom: 7, 
@@ -68,49 +64,41 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}
 }).addTo(map);
 let colorLayer = null, velocity = null;
 
-// ---------- data ----------
 async function getTiff(c, t) {
   const r = await fetch(`${WORKER_URL}/api/field?c=${c}&t=${new Date(t).toISOString().replace(/\.\d+Z$/, "Z")}`);
   if (!r.ok) throw new Error(r.status);
   const run = r.headers.get("X-Run"), img = await (await fromArrayBuffer(await r.arrayBuffer())).getImage();
   const [band] = await img.readRasters({ interleave: false });
-  return { band, w: img.getWidth(), h: img.getHeight(), bbox: img.getBoundingBox(), run }; // bbox = [W,S,E,N]
+  return { band, w: img.getWidth(), h: img.getHeight(), bbox: img.getBoundingBox(), run };
 }
 
 async function load() {
   const tok = ++S.token; 
   setStatus("loading");
-  $("loading-overlay").style.display = "flex"; // Affiche l'écran de chargement
+  $("loading-overlay").style.display = "flex";
 
   try {
-    // Gusts: Météo-France gives gust SPEED only, so direction/arrows/particles keep using the mean wind U/V.
     const [a, b, g] = await Promise.all((S.kind === "wind" ? ["u", "v"] : ["u", "v", "g"]).map((c) => getTiff(c, S.t)));
-    if (tok !== S.token) return; // a newer request superseded this one
+    if (tok !== S.token) return;
     
     S.f = { u: a.band, v: b.band, g: g?.band, w: a.w, h: a.h, bbox: a.bbox };
         
     if (S.f.bbox && !map.options.maxBounds) {
       const [W, Sx, E, N] = S.f.bbox;
-      const pad = 0.5; // Marge autour de la zone
+      const pad = 0.5;
       
       const bounds = [
-        [Sx - pad, W - pad], // Sud-Ouest
-        [N + pad, E + pad]   // Nord-Est
+        [Sx - pad, W - pad],
+        [N + pad, E + pad]
       ];
 
-      // 1. Applique les limites
       map.setMaxBounds(bounds);
       map.options.maxBoundsViscosity = 1.0;
 
-      // 2. Centre et zoome parfaitement sur la zone
       map.fitBounds(bounds, { padding: [20, 20] });
 
-      // 3. Empêche de dézoomer au-delà du niveau où toute la zone est visible
-      // On attend un petit peu que la carte se centre avant de figer le minZoom
       setTimeout(() => {
         const currentZoom = map.getZoom();
-        // currentZoom - 1 permet de dézoomer un tout petit peu plus que le cadrage parfait,
-        // mais pas assez pour voir tout l'océan Indien ou l'Afrique.
         map.setMinZoom(currentZoom - 1); 
       }, 100);
     }
@@ -128,7 +116,7 @@ async function load() {
     console.error(e); 
     if (tok === S.token) setStatus("error"); 
   } finally {
-    if (tok === S.token) $("loading-overlay").style.display = "none"; // Cache l'écran
+    if (tok === S.token) $("loading-overlay").style.display = "none";
   }
 }
 
@@ -142,7 +130,6 @@ function sample(ll) {
   return { u, v, kmh: sp * 3.6, dir: (Math.atan2(-u, -v) * 180 / Math.PI + 360) % 360 };
 }
 
-// Color background: re-projected from lat/lon rows to Web-Mercator rows so it lines up with the tiles.
 function renderColor() {
   const f = S.f, [W, Sx, E, N] = f.bbox, cv = document.createElement("canvas"); cv.width = f.w; cv.height = f.h;
   const g = cv.getContext("2d"), img = g.createImageData(f.w, f.h), d = img.data;
@@ -152,7 +139,7 @@ function renderColor() {
     const row = Math.min(f.h - 1, Math.floor((N - lat) / (N - Sx) * f.h));
     for (let i = 0; i < f.w; i++) {
       const k = row * f.w + i, u = f.u[k], v = f.v[k], o = (j * f.w + i) * 4;
-      if (!(Math.abs(u) < 500)) continue; // nodata stays transparent
+      if (!(Math.abs(u) < 500)) continue;
       const c = LUT[Math.min(120, Math.round((f.g ? f.g[k] : Math.hypot(u, v)) * 3.6))];
       d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 145;
     }
@@ -163,7 +150,6 @@ function renderColor() {
   colorLayer.bringToBack(); map.eachLayer((l) => l instanceof L.TileLayer && l.bringToBack());
 }
 
-// Particles (leaflet-velocity): grid subsampled (~350 columns) to stay light on mobile.
 function renderVelocity() {
   if (velocity) { map.removeLayer(velocity); velocity = null; }
   if (!S.anim || !S.f) return;
@@ -184,7 +170,6 @@ function renderVelocity() {
   }).addTo(map);
 }
 
-// ---------- tooltips / pin ----------
 const tip = L.tooltip({ className: "wtip", direction: "top", offset: [0, -8] });
 const txt = (p) => p ? `<b>${p.kmh.toFixed(0)} km/h</b> · ${Math.round(p.dir)}°` : "–";
 if (matchMedia("(hover:hover)").matches) {
@@ -202,9 +187,8 @@ function refreshPin() {
     .bindTooltip(txt(sample(S.pin)), { className: "wtip", permanent: true, direction: "top", offset: [0, -8] });
 }
 
-// ---------- time selection (Réunion time) ----------
 const dayStart = (off) => {
-  const d = new Date(Date.now() + TZ * H); // UTC epoch of 00:00 Réunion on day (today+off)
+  const d = new Date(Date.now() + TZ * H);
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + off) - TZ * H;
 };
 const valid = (t) => S.meta && t >= Date.parse(S.meta.validFrom) && t <= Date.parse(S.meta.validTo);
@@ -212,7 +196,6 @@ const valid = (t) => S.meta && t >= Date.parse(S.meta.validFrom) && t <= Date.pa
 function renderTime() {
   $("dates").innerHTML = ""; $("hours").innerHTML = "";
   
-  // 0 = Aujourd'hui, 1 = Demain, 2 = J+2
   [0, 1, 2].forEach((off, i) => { 
     const d = new Date(Date.now() + TZ * H + off * 24 * H);
     const days = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
@@ -220,7 +203,7 @@ function renderTime() {
     const dayNum = d.getUTCDate();
     
     const b = document.createElement("button"); 
-    b.innerHTML = `<span style="font-size:10px;opacity:0.7">${off === 0 ? T("now") : off === 1 ? "+1" : "+2"}</span><br>${dayName} ${dayNum}`;
+    b.innerHTML = `<span style="font-size:12px;opacity:0.7">${dayName} ${dayNum}</span>`;
     b.className = off === S.day ? "sel" : ""; 
     b.onclick = () => pickDay(off); 
     $("dates").append(b); 
@@ -236,7 +219,7 @@ function renderTime() {
   }
 }
 
-function pickDay(off) { // keep the same local hour if possible, else the nearest valid cell of that day
+function pickDay(off) {
   const hr = S.t != null ? Math.round(((S.t - dayStart(S.day)) / H) / 3) * 3 : 12; S.day = off;
   const cells = [...Array(8)].map((_, i) => dayStart(off) + i * 3 * H).filter(valid);
   S.t = cells.sort((a, b) => Math.abs(a - (dayStart(off) + hr * H)) - Math.abs(b - (dayStart(off) + hr * H)))[0] ?? S.t;
@@ -244,15 +227,12 @@ function pickDay(off) { // keep the same local hour if possible, else the neares
 }
 
 function header() { 
-  // L'heure de mise à jour (lastPublished) renvoyée par le Worker
   const pubDate = S.meta.lastPublished ? Date.parse(S.meta.lastPublished) : Date.parse(S.meta.run) + 8 * H;
   $("last").textContent = fmt(pubDate);
   
-  // L'heure de la prochaine mise à jour (nextRun)
   $("next").textContent = fmt(Date.parse(S.meta.nextRun)); 
 }
 
-// ---------- legend + i18n ----------
 function legend() {
   $("legend").innerHTML = `<div class="lab"><span>km/h</span></div><div class="bar" style="background:linear-gradient(90deg,${STOPS.map(([v, c]) => `${rgb(c)} ${v / 1.2}%`).join(",")})"></div><div class="lab"><span>0</span><span>30</span><span>60</span><span>90</span><span>120</span></div>`;
 }
@@ -264,11 +244,9 @@ function applyLang() {
 
 $("lang").onclick = () => { lang = lang === "fr" ? "en" : "fr"; applyLang(); };
 $("kind").onclick = () => { S.kind = S.kind === "wind" ? "gust" : "wind"; $("kind").textContent = T(S.kind); load(); };
-// $("anim").onclick = () => { S.anim = !S.anim; $("anim").classList.toggle("on", S.anim); renderVelocity(); };
 $("collapse").onclick = () => $("hud").classList.toggle("collapsed");
 if (innerWidth < 700) $("hud").classList.add("collapsed");
 
-// ---------- boot ----------
 (async function init() {
   legend(); applyLang();
   try {
