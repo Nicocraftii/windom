@@ -57,14 +57,14 @@ function setStatus(s) { $("dot").className = "dot " + s; $("dot").title = T({ ok
 const map = L.map("map", { 
   center: [-21.1, 55.5], 
   zoom: 7, 
-  minZoom: 6,  
+  minZoom: 7,  
   maxZoom: 10,
   zoomControl: false,
   preferCanvas: true 
 });
 L.control.zoom({ position: "bottomleft" }).addTo(map);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_56p3_1_02e4e5c60e17be46250aad47", {
-  attribution: "© OpenStreetMap © CARTO | Météo-France AROME (Etalab)", maxZoom: 10
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}{r}.png?key=cb1_56p3_1_02e4e5c60e17be46250aad47", {
+  attribution: "© OpenStreetMap © CARTO | Météo-France AROME (Etalab)", maxZoom: 12
 }).addTo(map);
 let colorLayer = null, velocity = null;
 
