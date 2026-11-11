@@ -203,7 +203,7 @@ function renderTime() {
     const dayNum = d.getUTCDate();
     
     const b = document.createElement("button"); 
-    b.innerHTML = `<span style="font-size:12px;opacity:0.7">${dayName} ${dayNum}</span>`;
+    b.innerHTML = `<span style="font-size:12px;">${dayName} ${dayNum}</span>`;
     b.className = off === S.day ? "sel" : ""; 
     b.onclick = () => pickDay(off); 
     $("dates").append(b); 
