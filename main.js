@@ -102,6 +102,12 @@ async function load() {
     const [a, b, g] = await Promise.all((S.kind === "wind" ? ["u", "v"] : ["u", "v", "g"]).map((c) => getTiff(c, S.t)));
     if (tok !== S.token) return; // a newer request superseded this one
     S.f = { u: a.band, v: b.band, g: g?.band, w: a.w, h: a.h, bbox: a.bbox };
+    if (S.f?.bbox) {
+      const [W, Sx, E, N] = S.f.bbox;
+      const pad = 2; // marge en degrés
+      map.setMaxBounds([[Sx - pad, W - pad], [N + pad, E + pad]]);
+      map.options.maxBoundsViscosity = 0.8;
+    }
     if (a.run && S.meta && a.run !== S.meta.run) { S.meta.run = a.run; S.meta.nextRun = new Date(Date.parse(a.run) + 6 * H + 55 * 60e3).toISOString(); header(); }
     renderColor(); renderVelocity(); refreshPin(); setStatus("ok");
   } catch (e) { console.error(e); if (tok === S.token) setStatus("error"); }
