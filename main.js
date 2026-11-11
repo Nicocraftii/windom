@@ -54,7 +54,13 @@ const fmt = (ms) => {
 function setStatus(s) { $("dot").className = "dot " + s; $("dot").title = T({ ok: "ok", error: "err", loading: "load" }[s]); }
 
 // ---------- map ----------
-const map = L.map("map", { center: [-21.1, 55.5], zoom: 7, minZoom: 4,  maxBounds: [[-30, 40], [-10, 70]], maxBoundsViscosity: 0.8,zoomControl: true, preferCanvas: true });
+const map = L.map("map", { 
+  center: [-21.1, 55.5], 
+  zoom: 7, 
+  minZoom: 4,  
+  maxZoom: 10,
+  zoomControl: true, preferCanvas: true 
+});
 L.control.zoom({ position: "bottomleft" }).addTo(map);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_56p3_1_02e4e5c60e17be46250aad47", {
   attribution: "© OpenStreetMap © CARTO | Météo-France AROME (Etalab)", maxZoom: 12
@@ -102,11 +108,20 @@ async function load() {
     const [a, b, g] = await Promise.all((S.kind === "wind" ? ["u", "v"] : ["u", "v", "g"]).map((c) => getTiff(c, S.t)));
     if (tok !== S.token) return; // a newer request superseded this one
     S.f = { u: a.band, v: b.band, g: g?.band, w: a.w, h: a.h, bbox: a.bbox };
-    if (S.f?.bbox) {
+    if (S.f.bbox && !map.options.maxBounds) {
       const [W, Sx, E, N] = S.f.bbox;
-      const pad = 2; // marge en degrés
-      map.setMaxBounds([[Sx - pad, W - pad], [N + pad, E + pad]]);
-      map.options.maxBoundsViscosity = 0.8;
+      
+      // On ajoute environ 0.5 degré de marge (environ 50km)
+      // Tu peux ajuster cette valeur (0.2 pour serrer, 1.0 pour élargir)
+      const pad = 0.5; 
+      
+      const bounds = [
+        [Sx - pad, W - pad], // Sud-Ouest
+        [N + pad, E + pad]   // Nord-Est
+      ];
+
+      map.setMaxBounds(bounds);
+      map.options.maxBoundsViscosity = 1.0; // 1.0 = complètement rigide
     }
     if (a.run && S.meta && a.run !== S.meta.run) { S.meta.run = a.run; S.meta.nextRun = new Date(Date.parse(a.run) + 6 * H + 55 * 60e3).toISOString(); header(); }
     renderColor(); renderVelocity(); refreshPin(); setStatus("ok");
