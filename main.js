@@ -14,12 +14,12 @@ const I18N = {
   fr: {
     updated: "Mis à jour", next: "Prochaine", wind: "Vent", gust: "Rafales", anim: "Animation",
     ok: "Données chargées", err: "Erreur de chargement", load: "Chargement…",
-    from: "de", toward: "vent"
+    from: "de", toward: "vent", now: "Auj."
   },
   en: {
     updated: "Updated", next: "Next", wind: "Wind", gust: "Gusts", anim: "Animation",
     ok: "Data loaded", err: "Loading error", load: "Loading…",
-    from: "from", toward: "wind"
+    from: "from", toward: "wind", now: "Today."
   },
 };
 let lang = navigator.language?.startsWith("en") ? "en" : "fr";
@@ -220,7 +220,7 @@ function renderTime() {
     const dayNum = d.getUTCDate();
     
     const b = document.createElement("button"); 
-    b.innerHTML = `<span style="font-size:10px;opacity:0.7">${off === 0 ? "Auj." : off === 1 ? "Dem." : "J+2"}</span><br>${dayName} ${dayNum}`;
+    b.innerHTML = `<span style="font-size:10px;opacity:0.7">${off === 0 ? T("now") : off === 1 ? "+1" : "+2"}</span><br>${dayName} ${dayNum}`;
     b.className = off === S.day ? "sel" : ""; 
     b.onclick = () => pickDay(off); 
     $("dates").append(b); 

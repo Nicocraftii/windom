@@ -18,7 +18,7 @@ button:disabled{opacity:.35;cursor:default;pointer-events:none}
 @keyframes pulse{50%{opacity:.35}}
 .meta{color:var(--mut);font-size:12px;margin:8px 0}.meta b{color:var(--fg)}
 .seg{display:flex;gap:6px;margin-bottom:8px}.seg button{flex:1}
-.cells{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}.cells button{padding:6px 0;font-variant-numeric:tabular-nums}
+.cells{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}.cells button{padding:6px 0;font-size: 0.85rem;font-variant-numeric:tabular-nums}
 .body{transition:opacity .2s}
 
 #controls{top:max(10px,env(safe-area-inset-top));right:10px;display:flex;gap:6px;padding:8px}
