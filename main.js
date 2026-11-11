@@ -57,7 +57,7 @@ function setStatus(s) { $("dot").className = "dot " + s; $("dot").title = T({ ok
 const map = L.map("map", { 
   center: [-21.1, 55.5], 
   zoom: 7, 
-  minZoom: 9,  
+  minZoom: 8,  
   maxZoom: 12,
   zoomControl: false,
   preferCanvas: true 
