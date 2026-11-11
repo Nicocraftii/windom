@@ -28,7 +28,50 @@ button:disabled{opacity:.35;cursor:default;pointer-events:none}
 .leaflet-tooltip.wtip{background:var(--bg);color:var(--fg);border:0;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
 .leaflet-control-attribution{font-size:10px}
 .leaflet-control-zoom { margin-bottom: 60px !important }
+/* ---------- Customisation des boutons de zoom ---------- */
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: none !important;
+}
 
+/* Le conteneur des boutons (on lui donne le même style que tes panels) */
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background-color: var(--bg) !important; /* Le fond sombre translucide */
+  color: var(--fg) !important; /* Le texte clair */
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  font-size: 18px !important;
+  transition: background .15s, transform .1s;
+}
+
+/* Le bouton du haut (+) */
+.leaflet-control-zoom-in {
+  border-radius: 10px 10px 0 0 !important;
+  border-bottom: none !important;
+}
+
+/* Le bouton du bas (-) */
+.leaflet-control-zoom-out {
+  border-radius: 0 0 10px 10px !important;
+}
+
+/* Effet au survol (hover) */
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  color: white !important;
+}
+
+/* Effet au clic */
+.leaflet-control-zoom-in:active,
+.leaflet-control-zoom-out:active {
+  transform: scale(0.96);
+}
 
 @media(max-width:700px){
   .icon{display:inline-block}
@@ -50,6 +93,7 @@ button:disabled{opacity:.35;cursor:default;pointer-events:none}
 .leaflet-tile-pane {
   filter: brightness(0.575) contrast(4.5);
 }
+
 
 .leaflet-top.leaflet-left .leaflet-control-zoom {
   display: none !important;
