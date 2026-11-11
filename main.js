@@ -58,8 +58,9 @@ const map = L.map("map", {
   center: [-21.1, 55.5], 
   zoom: 7, 
   minZoom: 4,  
-  maxZoom: 10,
-  zoomControl: true, preferCanvas: true 
+  maxZoom: 8,
+  zoomControl: false,
+  preferCanvas: true 
 });
 L.control.zoom({ position: "bottomleft" }).addTo(map);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_56p3_1_02e4e5c60e17be46250aad47", {
@@ -138,7 +139,7 @@ function renderColor() {
       const k = row * f.w + i, u = f.u[k], v = f.v[k], o = (j * f.w + i) * 4;
       if (!(Math.abs(u) < 500)) continue; // nodata stays transparent
       const c = LUT[Math.min(120, Math.round((f.g ? f.g[k] : Math.hypot(u, v)) * 3.6))];
-      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 170;
+      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 200;
     }
   }
   g.putImageData(img, 0, 0);
