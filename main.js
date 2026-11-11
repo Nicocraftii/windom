@@ -265,7 +265,7 @@ function applyLang() {
 
 $("lang").onclick = () => { lang = lang === "fr" ? "en" : "fr"; applyLang(); };
 $("kind").onclick = () => { S.kind = S.kind === "wind" ? "gust" : "wind"; $("kind").textContent = T(S.kind); load(); };
-$("anim").onclick = () => { S.anim = !S.anim; $("anim").classList.toggle("on", S.anim); renderVelocity(); };
+// $("anim").onclick = () => { S.anim = !S.anim; $("anim").classList.toggle("on", S.anim); renderVelocity(); };
 $("collapse").onclick = () => $("hud").classList.toggle("collapsed");
 if (innerWidth < 700) $("hud").classList.add("collapsed");
 
