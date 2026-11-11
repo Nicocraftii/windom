@@ -22,8 +22,15 @@ let lang = navigator.language?.startsWith("en") ? "en" : "fr";
 const T = (k) => I18N[lang][k];
 
 // ---------- colors (km/h) ----------
-const STOPS = [[0,[40,70,180]],[10,[40,150,220]],[20,[40,200,170]],[30,[120,220,80]],[40,[240,220,60]],
-               [55,[250,150,40]],[70,[230,60,40]],[90,[180,30,120]],[120,[120,20,160]]];
+const STOPS = [
+  [0,  [220, 40, 40]],
+  [25, [240, 120, 40]],
+  [45, [250, 200, 60]],
+  [65, [120, 220, 80]],
+  [85, [40, 180, 200]],
+  [105,[40, 100, 220]],
+  [120,[120, 20, 160]]
+];
 const LUT = Array.from({ length: 121 }, (_, k) => { // one RGB per km/h, linear interpolation between stops
   let i = STOPS.findIndex(([v]) => v >= k); if (i <= 0) i = 1;
   const [v0, c0] = STOPS[i - 1], [v1, c1] = STOPS[i], f = Math.min(1, (k - v0) / (v1 - v0));
@@ -45,7 +52,7 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{
   attribution: "© OpenStreetMap © CARTO | Météo-France AROME (Etalab)", maxZoom: 12 }).addTo(map);
 let colorLayer = null, velocity = null;
 
-// // Arrow layer: one canvas covering the viewport, grid spacing (px) adapts to zoom.
+// Arrow layer: one canvas covering the viewport, grid spacing (px) adapts to zoom.
 // const Arrows = L.Layer.extend({
 //   onAdd(m) {
 //     this.c = L.DomUtil.create("canvas", "", m.getPanes().overlayPane); this.c.style.pointerEvents = "none";
@@ -87,7 +94,7 @@ async function load() {
     if (tok !== S.token) return; // a newer request superseded this one
     S.f = { u: a.band, v: b.band, g: g?.band, w: a.w, h: a.h, bbox: a.bbox };
     if (a.run && S.meta && a.run !== S.meta.run) { S.meta.run = a.run; S.meta.nextRun = new Date(Date.parse(a.run) + 6 * H + 55 * 60e3).toISOString(); header(); }
-    renderColor(); arrows.draw(); renderVelocity(); refreshPin(); setStatus("ok");
+    renderColor(); renderVelocity(); refreshPin(); setStatus("ok");
   } catch (e) { console.error(e); if (tok === S.token) setStatus("error"); }
 }
 
