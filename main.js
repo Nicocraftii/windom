@@ -45,30 +45,30 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{
   attribution: "© OpenStreetMap © CARTO | Météo-France AROME (Etalab)", maxZoom: 12 }).addTo(map);
 let colorLayer = null, velocity = null;
 
-// Arrow layer: one canvas covering the viewport, grid spacing (px) adapts to zoom.
-const Arrows = L.Layer.extend({
-  onAdd(m) {
-    this.c = L.DomUtil.create("canvas", "", m.getPanes().overlayPane); this.c.style.pointerEvents = "none";
-    m.on("moveend zoomend", this.draw, this); m.on("zoomstart", () => (this.c.style.opacity = 0)); this.draw();
-  },
-  onRemove(m) { m.off("moveend zoomend", this.draw, this); this.c.remove(); },
-  draw() {
-    const m = this._map, c = this.c, sz = m.getSize(); c.style.opacity = 1;
-    L.DomUtil.setPosition(c, m.containerPointToLayerPoint([0, 0])); c.width = sz.x; c.height = sz.y;
-    if (!S.f) return;
-    const z = m.getZoom(), step = z < 7 ? 56 : z < 9 ? 44 : z < 11 ? 36 : 30, len = Math.min(step * 0.55, 22);
-    const g = c.getContext("2d"); g.strokeStyle = g.fillStyle = "rgba(255,255,255,.85)"; g.lineWidth = 1.3;
-    for (let x = step / 2; x < sz.x; x += step) for (let y = step / 2; y < sz.y; y += step) {
-      const p = sample(m.containerPointToLatLng([x, y])); if (!p) continue;
-      const a = Math.atan2(-p.v, p.u), dx = Math.cos(a) * len / 2, dy = Math.sin(a) * len / 2;
-      g.beginPath(); g.moveTo(x - dx, y - dy); g.lineTo(x + dx, y + dy); g.stroke(); // shaft
-      g.beginPath(); g.moveTo(x + dx, y + dy); // head
-      g.lineTo(x + dx - Math.cos(a - 0.5) * 6, y + dy - Math.sin(a - 0.5) * 6);
-      g.lineTo(x + dx - Math.cos(a + 0.5) * 6, y + dy - Math.sin(a + 0.5) * 6); g.fill();
-    }
-  },
-});
-const arrows = new Arrows().addTo(map);
+// // Arrow layer: one canvas covering the viewport, grid spacing (px) adapts to zoom.
+// const Arrows = L.Layer.extend({
+//   onAdd(m) {
+//     this.c = L.DomUtil.create("canvas", "", m.getPanes().overlayPane); this.c.style.pointerEvents = "none";
+//     m.on("moveend zoomend", this.draw, this); m.on("zoomstart", () => (this.c.style.opacity = 0)); this.draw();
+//   },
+//   onRemove(m) { m.off("moveend zoomend", this.draw, this); this.c.remove(); },
+//   draw() {
+//     const m = this._map, c = this.c, sz = m.getSize(); c.style.opacity = 1;
+//     L.DomUtil.setPosition(c, m.containerPointToLayerPoint([0, 0])); c.width = sz.x; c.height = sz.y;
+//     if (!S.f) return;
+//     const z = m.getZoom(), step = z < 7 ? 56 : z < 9 ? 44 : z < 11 ? 36 : 30, len = Math.min(step * 0.55, 22);
+//     const g = c.getContext("2d"); g.strokeStyle = g.fillStyle = "rgba(255,255,255,.85)"; g.lineWidth = 1.3;
+//     for (let x = step / 2; x < sz.x; x += step) for (let y = step / 2; y < sz.y; y += step) {
+//       const p = sample(m.containerPointToLatLng([x, y])); if (!p) continue;
+//       const a = Math.atan2(-p.v, p.u), dx = Math.cos(a) * len / 2, dy = Math.sin(a) * len / 2;
+//       g.beginPath(); g.moveTo(x - dx, y - dy); g.lineTo(x + dx, y + dy); g.stroke(); // shaft
+//       g.beginPath(); g.moveTo(x + dx, y + dy); // head
+//       g.lineTo(x + dx - Math.cos(a - 0.5) * 6, y + dy - Math.sin(a - 0.5) * 6);
+//       g.lineTo(x + dx - Math.cos(a + 0.5) * 6, y + dy - Math.sin(a + 0.5) * 6); g.fill();
+//     }
+//   },
+// });
+// const arrows = new Arrows().addTo(map);
 
 // ---------- data ----------
 async function getTiff(c, t) {
