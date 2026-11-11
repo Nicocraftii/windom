@@ -48,6 +48,10 @@ button:disabled{opacity:.35;cursor:default;pointer-events:none}
   animation: spin 1s ease-in-out infinite;
 }
 
+.leaflet-tile-pane {
+  filter: grayscale(100%) brightness(0.6) contrast(1.2);
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
