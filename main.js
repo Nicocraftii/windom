@@ -223,8 +223,14 @@ function pickDay(off) { // keep the same local hour if possible, else the neares
   S.t = cells.sort((a, b) => Math.abs(a - (dayStart(off) + hr * H)) - Math.abs(b - (dayStart(off) + hr * H)))[0] ?? S.t;
   renderTime(); load();
 }
-function header() { $("last").textContent = fmt(Date.parse(S.meta.run)); $("next").textContent = fmt(Date.parse(S.meta.nextRun)); }
-
+function header() { 
+  // L'heure de mise à jour (lastPublished)
+  const pubDate = S.meta.lastPublished ? Date.parse(S.meta.lastPublished) : Date.parse(S.meta.run) + 8 * H;
+  $("last").textContent = fmt(pubDate);
+  
+  // L'heure de la prochaine mise à jour (nextRun)
+  $("next").textContent = fmt(Date.parse(S.meta.nextRun)); 
+}
 // ---------- legend + i18n ----------
 function legend() {
   $("legend").innerHTML = `<div class="lab"><span>km/h</span></div><div class="bar" style="background:linear-gradient(90deg,${STOPS.map(([v, c]) => `${rgb(c)} ${v / 1.2}%`).join(",")})"></div><div class="lab"><span>0</span><span>30</span><span>60</span><span>90</span><span>120</span></div>`;
