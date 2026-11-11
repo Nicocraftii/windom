@@ -24,9 +24,12 @@ button:disabled{opacity:.35;cursor:default;pointer-events:none}
 #controls{top:max(10px,env(safe-area-inset-top));right:10px;display:flex;gap:6px;padding:8px}
 #legend{right:10px;bottom:max(24px,env(safe-area-inset-bottom));padding:8px 10px;font-size:11px;width:210px}
 #legend .bar{height:10px;border-radius:5px;margin:4px 0}.lab{display:flex;justify-content:space-between;color:var(--mut)}
-#cursor{left:10px;bottom:24px;padding:8px 12px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--mut)}
+#cursor{left:10px;bottom:14px;padding:8px 12px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--mut)}
 .leaflet-tooltip.wtip{background:var(--bg);color:var(--fg);border:0;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
 .leaflet-control-attribution{font-size:10px}.leaflet-control-zoom{margin-bottom:90px!important}
+/* à supprimer ou ajuster */
+.leaflet-control-zoom { margin-bottom: 100px !important }
+
 
 @media(max-width:700px){
   .icon{display:inline-block}
