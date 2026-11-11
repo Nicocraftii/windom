@@ -4,7 +4,7 @@
  * the browser decodes U/V rasters, so no GRIB2 / heavy JSON is needed.
  * Internally everything is UTC epoch ms; display uses Réunion time (UTC+4).
  */
-import { fromArrayBuffer } from 'geotiff';
+import { fromArrayBuffer } from 'https://cdn.jsdelivr.net/npm/geotiff@2.1.3/+esm';
 
 const WORKER_URL = "https://windom.picard-nicolas-run.workers.dev"; // <- replace after `npx wrangler deploy`
 const TZ = 4, H = 3600e3;
