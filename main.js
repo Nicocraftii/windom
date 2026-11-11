@@ -13,12 +13,12 @@ const TZ = 4, H = 3600e3;
 const I18N = {
   fr: {
     updated: "Mis à jour", next: "Prochaine", wind: "Vent", gust: "Rafales", anim: "Animation",
-    d: ["Hier", "Aujourd'hui", "Demain"], ok: "Données chargées", err: "Erreur de chargement", load: "Chargement…",
+    ok: "Données chargées", err: "Erreur de chargement", load: "Chargement…",
     from: "de", toward: "vent"
   },
   en: {
     updated: "Updated", next: "Next", wind: "Wind", gust: "Gusts", anim: "Animation",
-    d: ["Yesterday", "Today", "Tomorrow"], ok: "Data loaded", err: "Loading error", load: "Loading…",
+    ok: "Data loaded", err: "Loading error", load: "Loading…",
     from: "from", toward: "wind"
   },
 };
@@ -27,15 +27,15 @@ const T = (k) => I18N[lang][k];
 
 // ---------- colors (km/h) ----------
 const STOPS = [
-  [0, [40, 70, 180]],
-  [8, [40, 150, 220]],
-  [16, [40, 200, 170]],
-  [24, [120, 220, 80]],
-  [32, [240, 220, 60]],
-  [44, [250, 150, 40]],
-  [56, [230, 60, 40]],
-  [72, [180, 30, 120]],
-  [88, [120, 20, 160]],
+  [0,   [40, 70, 180]],   // bleu foncé (calme)
+  [10,  [40, 150, 220]],  // bleu clair
+  [20,  [40, 200, 170]],  // turquoise
+  [30,  [120, 220, 80]],  // vert
+  [40,  [240, 220, 60]],  // jaune
+  [55,  [250, 150, 40]],  // orange
+  [70,  [230, 60, 40]],   // rouge
+  [90,  [180, 30, 120]],  // magenta
+  [110, [120, 20, 160]],  // violet
 ];
 const LUT = Array.from({ length: 121 }, (_, k) => { // one RGB per km/h, linear interpolation between stops
   let i = STOPS.findIndex(([v]) => v >= k); if (i <= 0) i = 1;
@@ -67,31 +67,6 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{
 }).addTo(map);
 let colorLayer = null, velocity = null;
 
-// Arrow layer: one canvas covering the viewport, grid spacing (px) adapts to zoom.
-// const Arrows = L.Layer.extend({
-//   onAdd(m) {
-//     this.c = L.DomUtil.create("canvas", "", m.getPanes().overlayPane); this.c.style.pointerEvents = "none";
-//     m.on("moveend zoomend", this.draw, this); m.on("zoomstart", () => (this.c.style.opacity = 0)); this.draw();
-//   },
-//   onRemove(m) { m.off("moveend zoomend", this.draw, this); this.c.remove(); },
-//   draw() {
-//     const m = this._map, c = this.c, sz = m.getSize(); c.style.opacity = 1;
-//     L.DomUtil.setPosition(c, m.containerPointToLayerPoint([0, 0])); c.width = sz.x; c.height = sz.y;
-//     if (!S.f) return;
-//     const z = m.getZoom(), step = z < 7 ? 56 : z < 9 ? 44 : z < 11 ? 36 : 30, len = Math.min(step * 0.55, 22);
-//     const g = c.getContext("2d"); g.strokeStyle = g.fillStyle = "rgba(255,255,255,.85)"; g.lineWidth = 1.3;
-//     for (let x = step / 2; x < sz.x; x += step) for (let y = step / 2; y < sz.y; y += step) {
-//       const p = sample(m.containerPointToLatLng([x, y])); if (!p) continue;
-//       const a = Math.atan2(-p.v, p.u), dx = Math.cos(a) * len / 2, dy = Math.sin(a) * len / 2;
-//       g.beginPath(); g.moveTo(x - dx, y - dy); g.lineTo(x + dx, y + dy); g.stroke(); // shaft
-//       g.beginPath(); g.moveTo(x + dx, y + dy); // head
-//       g.lineTo(x + dx - Math.cos(a - 0.5) * 6, y + dy - Math.sin(a - 0.5) * 6);
-//       g.lineTo(x + dx - Math.cos(a + 0.5) * 6, y + dy - Math.sin(a + 0.5) * 6); g.fill();
-//     }
-//   },
-// });
-// const arrows = new Arrows().addTo(map);
-
 // ---------- data ----------
 async function getTiff(c, t) {
   const r = await fetch(`${WORKER_URL}/api/field?c=${c}&t=${new Date(t).toISOString().replace(/\.\d+Z$/, "Z")}`);
@@ -102,30 +77,43 @@ async function getTiff(c, t) {
 }
 
 async function load() {
-  const tok = ++S.token; setStatus("loading");
+  const tok = ++S.token; 
+  setStatus("loading");
+  $("loading-overlay").style.display = "flex"; // Affiche l'écran de chargement
+
   try {
     // Gusts: Météo-France gives gust SPEED only, so direction/arrows/particles keep using the mean wind U/V.
     const [a, b, g] = await Promise.all((S.kind === "wind" ? ["u", "v"] : ["u", "v", "g"]).map((c) => getTiff(c, S.t)));
     if (tok !== S.token) return; // a newer request superseded this one
+    
     S.f = { u: a.band, v: b.band, g: g?.band, w: a.w, h: a.h, bbox: a.bbox };
+    
     if (S.f.bbox && !map.options.maxBounds) {
       const [W, Sx, E, N] = S.f.bbox;
-      
-      // On ajoute environ 0.5 degré de marge (environ 50km)
-      // Tu peux ajuster cette valeur (0.2 pour serrer, 1.0 pour élargir)
-      const pad = 0.5; 
-      
+      const pad = 0.5; // Marge de 0.5 degré
       const bounds = [
         [Sx - pad, W - pad], // Sud-Ouest
         [N + pad, E + pad]   // Nord-Est
       ];
-
       map.setMaxBounds(bounds);
-      map.options.maxBoundsViscosity = 1.0; // 1.0 = complètement rigide
+      map.options.maxBoundsViscosity = 1.0;
     }
-    if (a.run && S.meta && a.run !== S.meta.run) { S.meta.run = a.run; S.meta.nextRun = new Date(Date.parse(a.run) + 6 * H + 55 * 60e3).toISOString(); header(); }
-    renderColor(); renderVelocity(); refreshPin(); setStatus("ok");
-  } catch (e) { console.error(e); if (tok === S.token) setStatus("error"); }
+    
+    if (a.run && S.meta && a.run !== S.meta.run) { 
+      S.meta.run = a.run; 
+      header(); 
+    }
+    
+    renderColor(); 
+    renderVelocity(); 
+    refreshPin(); 
+    setStatus("ok");
+  } catch (e) { 
+    console.error(e); 
+    if (tok === S.token) setStatus("error"); 
+  } finally {
+    if (tok === S.token) $("loading-overlay").style.display = "none"; // Cache l'écran
+  }
 }
 
 /** Nearest-cell lookup -> {u, v (m/s), kmh, dir (meteorological "from" degrees)} or null. */
@@ -207,30 +195,47 @@ const valid = (t) => S.meta && t >= Date.parse(S.meta.validFrom) && t <= Date.pa
 
 function renderTime() {
   $("dates").innerHTML = ""; $("hours").innerHTML = "";
-  [-1, 0, 1].forEach((off, i) => {
-    const b = document.createElement("button"); b.textContent = T("d")[i];
-    b.className = off === S.day ? "sel" : ""; b.onclick = () => pickDay(off); $("dates").append(b);
+  
+  // 0 = Aujourd'hui, 1 = Demain, 2 = J+2
+  [0, 1, 2].forEach((off, i) => { 
+    const d = new Date(Date.now() + TZ * H + off * 24 * H);
+    const days = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+    const dayName = days[d.getUTCDay()];
+    const dayNum = d.getUTCDate();
+    
+    const b = document.createElement("button"); 
+    b.innerHTML = `<span style="font-size:10px;opacity:0.7">${off === 0 ? "Auj." : off === 1 ? "Dem." : "J+2"}</span><br>${dayName} ${dayNum}`;
+    b.className = off === S.day ? "sel" : ""; 
+    b.onclick = () => pickDay(off); 
+    $("dates").append(b); 
   });
-  for (let h = 0; h < 24; h += 3) {
+  
+  for (let h = 0; h < 24; h += 3) { 
     const t = dayStart(S.day) + h * H, b = document.createElement("button");
-    b.textContent = String(h).padStart(2, "0") + "h"; b.disabled = !valid(t); b.className = t === S.t ? "sel" : "";
-    b.onclick = () => { S.t = t; renderTime(); load(); }; $("hours").append(b);
+    b.textContent = String(h).padStart(2, "0") + "h"; 
+    b.disabled = !valid(t); 
+    b.className = t === S.t ? "sel" : ""; 
+    b.onclick = () => { S.t = t; renderTime(); load(); }; 
+    $("hours").append(b); 
   }
 }
+
 function pickDay(off) { // keep the same local hour if possible, else the nearest valid cell of that day
   const hr = S.t != null ? Math.round(((S.t - dayStart(S.day)) / H) / 3) * 3 : 12; S.day = off;
   const cells = [...Array(8)].map((_, i) => dayStart(off) + i * 3 * H).filter(valid);
   S.t = cells.sort((a, b) => Math.abs(a - (dayStart(off) + hr * H)) - Math.abs(b - (dayStart(off) + hr * H)))[0] ?? S.t;
   renderTime(); load();
 }
+
 function header() { 
-  // L'heure de mise à jour (lastPublished)
+  // L'heure de mise à jour (lastPublished) renvoyée par le Worker
   const pubDate = S.meta.lastPublished ? Date.parse(S.meta.lastPublished) : Date.parse(S.meta.run) + 8 * H;
   $("last").textContent = fmt(pubDate);
   
   // L'heure de la prochaine mise à jour (nextRun)
   $("next").textContent = fmt(Date.parse(S.meta.nextRun)); 
 }
+
 // ---------- legend + i18n ----------
 function legend() {
   $("legend").innerHTML = `<div class="lab"><span>km/h</span></div><div class="bar" style="background:linear-gradient(90deg,${STOPS.map(([v, c]) => `${rgb(c)} ${v / 1.2}%`).join(",")})"></div><div class="lab"><span>0</span><span>30</span><span>60</span><span>90</span><span>120</span></div>`;
@@ -251,7 +256,8 @@ if (innerWidth < 700) $("hud").classList.add("collapsed");
 (async function init() {
   legend(); applyLang();
   try {
-    S.meta = await (await fetch(`${WORKER_URL}/api/meta`)).json(); header();
+    S.meta = await (await fetch(`${WORKER_URL}/api/meta`)).json(); 
+    header();
     const now = Date.now(), cells = [...Array(8)].map((_, i) => dayStart(0) + i * 3 * H).filter(valid);
     S.t = cells.filter((t) => t <= now).pop() ?? cells[0] ?? Date.parse(S.meta.validFrom);
     renderTime(); load();

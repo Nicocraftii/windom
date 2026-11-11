@@ -10,6 +10,10 @@
 </head>
 <body>
   <div id="map"></div>
+  <div id="loading-overlay" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(14,22,36,0.6); backdrop-filter: blur(4px); flex-direction: column; align-items: center; justify-content: center; color: white; font-weight: bold; transition: opacity 0.3s;">
+  <div class="spinner"></div>
+  <div data-i18n="load" style="margin-top: 15px;">Chargement…</div>
+  </div>
 
   <!-- Compact overlay: header + date/hour selector (collapsible on mobile) -->
   <section id="hud" class="panel">
