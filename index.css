@@ -52,6 +52,10 @@ button:disabled{opacity:.35;cursor:default;pointer-events:none}
   filter: grayscale(100%) brightness(0.6) contrast(1.2);
 }
 
+.leaflet-top.leaflet-left .leaflet-control-zoom {
+  display: none !important;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

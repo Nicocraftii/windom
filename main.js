@@ -62,7 +62,6 @@ const map = L.map("map", {
   zoomControl: false,
   preferCanvas: true 
 });
-map.zoomControl.remove();
 L.control.zoom({ position: "bottomleft" }).addTo(map);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_56p3_1_02e4e5c60e17be46250aad47", {
   attribution: "© OpenStreetMap © CARTO | Météo-France AROME (Etalab)", maxZoom: 12
